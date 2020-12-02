@@ -56,11 +56,13 @@ plot.sample=function(sample.id, df, covs, cc, gene.df, uniref, gene.class, odir)
 plot.main=function(sample.id="aab")
 {
     df = read.delim("data/aab/cycle_summary_classification")
-    covs = read.delim("data/aab/cycle_covs_doms")
     cc = read.delim("data/aab/cycle_contig_table")
     gene.df = read.delim("data/aab/gene.tab")
     uniref = read.delim("data/aab/table_uniq_taxa")
     gene.class = read.delim("data/aab/gene_classification")
+
+    # covs table, limited to dominant cycles, to speed-up loading
+    covs = read.delim("data/aab/cycle_covs_doms")
 
     df = df[order(df$length, decreasing=T),]
     gene.df$cycle = gene.df$contig
