@@ -1,7 +1,7 @@
 library("plotrix")
 source("cplot_utils.r")
 source("cplot_profiles.r")
-option(stringsAsFactors=F)
+options(stringsAsFactors=F)
 
 ##################################################################################################################
 # core
