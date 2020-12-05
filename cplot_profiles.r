@@ -24,7 +24,8 @@ empty.profile=function(height=1, title="", lty=1)
 vlines.profile=function(title="vline.profile", lty=2, table, field)
 {
     list(height=0, title=title, table=table, field=field, lty=lty, plot.f=function(cx, pr) {
-        coords = pr$table[pr$table$sample==cx$sample & pr$table$cycle==cx$cycle,pr$field]
+        table = restrict.table(pr$table, cx)
+        coords = table[,pr$field]
         if (length(coords) > 0)
             cplot.vlines(cx=cx, coords=coords, lty=pr$lty)
     })
@@ -44,36 +45,35 @@ gene.profile=function(height=1, title="line.profile", table, col.field, add.labe
 {
     list(title=title, height=height, table=table, is.top=is.top, plot.trig=plot.trig,
          plot.f=function(cx, pr) {
-             pr$table = pr$table[pr$table$sample==cx$sample & pr$table$cycle == cx$cycle,]
-
+             table = restrict.table(pr$table, cx)
 
              trig.width = if (cx$max.coord > 50000) cx$max.coord/720 else cx$max.coord/360
-             label.coords = (pr$table$start  + pr$table$end)/2
+             label.coords = (table$start  + table$end)/2
 
              cplot.rect(cx=cx, xleft=0, xright=cx$max.coord, ybottom=0, ytop=pr$height, col="lightgray", border=NA)
              if (cx$type == "circle" && !cx$multi) cplot.title(cx=cx, pr=pr, title=pr$title, cex=0.4)
-             if (dim(pr$table)[1] == 0)
+             if (dim(table)[1] == 0)
                  return (NULL)
 
-             if (is.element(col.field, names(pr$table)))
-                 pr$table$col = pr$table[,col.field]
+             if (is.element(col.field, names(table)))
+                 table$col = table[,col.field]
              else
-                 pr$table$col = ifelse(pr$table$strand == "+", "red", "blue")
-             for (i in 1:dim(pr$table)[1]) {
-                 cplot.rect(cx=cx, xleft=pr$table$start[i], xright=pr$table$end[i], ybottom=0, ytop=pr$height,
-                            col=pr$table$col[i], border=NA)
-                 if (pr$table$strand[i] == "+") {
-                     trig.x = c(pr$table$start[i], pr$table$start[i], pr$table$start[i]+trig.width)
+                 table$col = ifelse(table$strand == "+", "red", "blue")
+             for (i in 1:dim(table)[1]) {
+                 cplot.rect(cx=cx, xleft=table$start[i], xright=table$end[i], ybottom=0, ytop=pr$height,
+                            col=table$col[i], border=NA)
+                 if (table$strand[i] == "+") {
+                     trig.x = c(table$start[i], table$start[i], table$start[i]+trig.width)
                      trig.y = c(0, height, height/2)
                  } else {
-                     trig.x = c(pr$table$end[i], pr$table$end[i], pr$table$end[i]-trig.width)
+                     trig.x = c(table$end[i], table$end[i], table$end[i]-trig.width)
                      trig.y = c(0, height, height/2)
                  }
                  if (plot.trig)
                      cplot.polygon(cx=cx, x=trig.x, y=trig.y, col=1, border=NA)
              }
              if (add.label && !cx$multi) {
-                 labels = pr$table$label
+                 labels = table$label
                  ix = grepl("hypothetical", labels, ignore.case=T) |
                      grepl("uncharacterized", labels, ignore.case=T) |
                      grepl("no_hit", labels, ignore.case=T)
@@ -120,9 +120,8 @@ gene.strand.profile=function(height, table, add.label=F, is.top=T, plot.trig=F)
 
 plot.cov.f=function(cx, pr)
 {
-    MDC = pr$cycle.table$MDC[pr$cycle.table$sample==cx$sample & pr$cycle.table$cycle == cx$cycle]
-    table = pr$cov.table
-    table = table[table$sample==cx$sample & table$cycle == cx$cycle,]
+    MDC = restrict.table(pr$cycle.table, cx)$MDC
+    table = restrict.table(pr$cov.table, cx)
     fields = pr$fields
 
     val.range = c(0, 1.1*max(table[,fields]))
@@ -134,11 +133,9 @@ plot.cov.f=function(cx, pr)
     grid.vals = get.grid.at(val.range=val.range, grid.nlines=pr$grid.nlines)
     grid.at = val2y(vals=grid.vals, val.range=val.range, height=pr$height)
 
-    MDC.y = val2y(vals=MDC, val.range=val.range, height=pr$height)
-    cplot.hline(cx=cx, height=MDC.y, lty=pr$MDC.lty, col=pr$MDC.col)
-
     max.coord = max(table$base)
-    binsize = if(max.coord > 10000) 100 else 10
+#    binsize = if(max.coord > 10000) 100 else 10
+    binsize = max(1,round(max.coord/360))
     breaks = unique(c(seq(from=0, to=max.coord, by=binsize), max.coord))
     ccut = cut(table$base, breaks=breaks)
     N = length(breaks)
@@ -149,6 +146,9 @@ plot.cov.f=function(cx, pr)
 
     cplot.hgrid(cx=cx, pr=pr, lty=1, col="gray",
                 vals=grid.vals, at=grid.at, add.label=pr$grid.label, cex=pr$axis.cex)
+
+    MDC.y = val2y(vals=MDC, val.range=val.range, height=pr$height)
+    cplot.hline(cx=cx, height=MDC.y, lty=pr$MDC.lty, col=pr$MDC.col)
 
     for (i in 1:length(fields))
         cplot.lines(cx=cx, table=rr, yfield=fields[i], col=pr$cols[i], lwd=pr$lwd)

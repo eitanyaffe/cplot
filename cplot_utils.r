@@ -1,6 +1,6 @@
 
 ##################################################################################################################
-# util geometry functions
+# util functions
 ##################################################################################################################
 
 sample.rect.points=function(xleft, xright, ybottom, ytop, npoints)
@@ -42,6 +42,15 @@ vals2colors=function(vals, cols, breaks)
 {
     ii = findInterval(vals, breaks, all.inside=T)
     cols[ii]
+}
+
+restrict.table=function(table, cx)
+{
+    if (is.element("cycle", names(table)))
+        table = table[table$cycle == cx$cycle,]
+    if (is.element("sample", names(sample)))
+        table = table[table$sample == cx$sample,]
+    table
 }
 
 ##################################################################################################################

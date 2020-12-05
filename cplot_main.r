@@ -49,7 +49,7 @@ plot.sample=function(sample.id, df, covs, cc, gene.df, uniref, gene.class, odir)
         vlines.profile(table=cc, field="cum_sum", lty=2))
     ofn.sample = paste0(odir.grouped, "/", sample.id, ".pdf")
     cplot.multi(profiles=profiles.multi, df=df, cc=cc,
-                base.rad=base.rad, plot.height=8, extra=1.1,
+                base.rad=base.rad, plot.height.per.cycle=1.5, extra=1.1, style="r",
                 ofn=ofn.sample)
 }
 
@@ -88,8 +88,9 @@ plot.main=function(sample.id="aab")
     df$sample = sample.id
     gene.df$sample = sample.id
     covs$sample = sample.id
+    cc$sample = sample.id
 
-    # id should be shorter than the CYC names, used for plotting throughout
+    # id is used for plotting throughout
     df$id = paste0("c", 1:dim(df)[1])
 
     plot.sample(sample.id=sample.id, df=df, covs=covs, cc=cc, gene.df=gene.df, uniref=uniref, gene.class=gene.class, odir="figures")

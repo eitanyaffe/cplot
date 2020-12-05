@@ -100,11 +100,13 @@ cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect)
         cycle = df$cycle[i]
         len = df$length[i]
         cclass = df$classification[i]
+        MDC = df$MDC[i]
         ofn.circle = paste0(odir.circle, "/", id, "_", cycle, ".pdf")
         ofn.rect = paste0(odir.rect, "/", id, "_", cycle, ".pdf")
         ncontigs = sum(cc$sample == sample & cc$cycle == cycle)+1
 
-        label = c(sample, cycle, cclass,
+        label = c(sample, id, cycle, cclass,
+                  paste0(round(MDC),"x", collapse=""),
                   paste0(len, "bp"),
                   paste0(ncontigs, " contigs"),
                   paste0("bottle=", df$bottleneck[i]),
@@ -119,7 +121,8 @@ cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect)
 
 }
 
-cplot.multi=function(profiles, df, cc, base.rad, plot.height, extra=1.1, ofn)
+# style: r=rectangle, h=horizontal, v=vertical
+cplot.multi=function(profiles, df, cc, base.rad, plot.height.per.cycle, extra=1.1, style="r", ofn)
 {
     cat(sprintf("plotting %d cycles in single plot: %s\n", dim(df)[1], ofn))
     # df$factor = df$length / min(df$length)
@@ -129,28 +132,32 @@ cplot.multi=function(profiles, df, cc, base.rad, plot.height, extra=1.1, ofn)
     total.rad = extra*(base.rad+ring.rad)
 
     NN = dim(df)[1]
-    Nx = ceiling(sqrt(NN))
-    Ny = ceiling(NN/Nx)
     df$index = 1:NN
+
+    if (style == "r") {
+        Nx = ceiling(sqrt(NN))
+        Ny = ceiling(NN/Nx)
+    } else if (style == "h") {
+        Nx = NN
+        Ny = 1
+    } else {
+        Nx = 1
+        Ny = NN
+    }
+
     df$loc.x = (df$index-1) %% Nx + 1
-    df$loc.y = (df$index-df$loc.x)/Ny+1
+    df$loc.y = (df$index-df$loc.x)/Nx+1
     df$center.x = 2 * (df$loc.x-1) * total.rad + total.rad
     df$center.y = 2 * (Ny - df$loc.y) * total.rad + total.rad
 
     xlim = c(0, 2*Nx*total.rad)
     ylim = c(0, 2*Ny*total.rad)
-    # xlim = c(0, max(df$center.x+df$total.rad))
-    # ylim = c(-max(df$total.rad), max(df$total.rad))
 
-    #df$center.x = df$total.rad + c(0, cumsum(2*df$total.rad[-dim(df)[1]]))
-    # df$center.y = 0
-    # xlim = c(0, max(df$center.x+df$total.rad))
-    # ylim = c(-max(df$total.rad), max(df$total.rad))
-
+    plot.height = plot.height.per.cycle * Ny
     plot.ratio = diff(xlim) / diff(ylim)
     pdf(ofn, width=plot.height*plot.ratio, height=plot.height)
-    plot.new()
     par(mai=c(0,0,0,0))
+    plot.new()
     plot.window(xlim=xlim, ylim=ylim)
 
     for (i in 1:dim(df)[1]) {
@@ -162,7 +169,8 @@ cplot.multi=function(profiles, df, cc, base.rad, plot.height, extra=1.1, ofn)
         cclass = df$classification[i]
         ncontigs = sum(cc$cycle == cycle)+1
 
-        label = c(id, paste0(round(MDC),"x", collapse=""), paste0(round(len/1000),"kb", collapse=""))
+        label.len = if (len > 9999) paste0(round(len/1000),"kb", collapse="") else paste0(len,"b", collapse="")
+        label = c(id, cycle, paste0(round(MDC),"x", collapse=""), label.len)
 
         text(x=df$center.x[i], y=df$center.y[i], labels=paste(label, collapse="\n"), cex=0.5)
 
