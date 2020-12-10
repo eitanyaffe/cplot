@@ -3,3 +3,4 @@ figures
 .DS_Store
 figures figures.old
 figures.old
+figures*

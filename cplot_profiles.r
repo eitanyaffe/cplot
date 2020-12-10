@@ -170,4 +170,3 @@ cov.profile=function(height=1, title="coverage", cov.table, cycle.table,
          grid.label=grid.label, grid.nlines=grid.nlines,
          plot.f=plot.cov.f)
 }
-

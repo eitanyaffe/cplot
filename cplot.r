@@ -1,6 +1,7 @@
 library("plotrix")
 source("cplot_utils.r")
 source("cplot_profiles.r")
+source("cplot_alignment.r")
 options(stringsAsFactors=F)
 
 ##################################################################################################################
@@ -91,7 +92,7 @@ cplot.on.rect=function(sample, cycle, ofn, label, max.coord, profiles, width, he
     graphics.off()
 }
 
-cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect)
+cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, circle.inch=5, rect.inch=4)
 {
     cat(sprintf("plotting %d cycles into %s and %s\n", dim(df)[1], odir.circle, odir.rect))
     for (i in dim(df)[1]:1) {
@@ -114,9 +115,9 @@ cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect)
 
         cplot.on.circle(sample=sample, cycle=cycle, ofn=ofn.circle, label=label, max.coord=len,
                         base.rad=base.rad, profiles=profiles,
-                        width=5, height=5)
+                        width=circle.inch, height=circle.inch)
         cplot.on.rect(sample=sample, cycle=cycle, ofn=ofn.rect, label=label, max.coord=len, profiles=profiles,
-                      width=8, height=4)
+                      width=rect.inch*2, height=rect.inch)
     }
 
 }

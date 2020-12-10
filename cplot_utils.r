@@ -116,6 +116,21 @@ cplot.vlines=function(cx, coords, lty=1)
             stop("unknown type"))
 }
 
+cplot.vsegs=function(cx, x, y0, y1, ...)
+{
+    hh = cx$current.height
+    switch (cx$type,
+            circle={
+                pstart = rect2circle(cx=cx, x=x, y=hh+y0, base.radius=cx$base.rad)
+                pend = rect2circle(cx=cx, x=x, y=hh+y1, base.radius=cx$base.rad)
+                segments(x0=pstart$x, x1=pend$x, y0=pstart$y, y1=pend$y, ...)
+            },
+            rect={
+                segments(x0=x, x1=x, y0=hh+y0, y1=hh+y1, ...)
+            },
+            stop("unknown type"))
+}
+
 
 # horizontal line
 cplot.hline=function(cx, height=0, lty=1, col=1)
@@ -159,15 +174,16 @@ cplot.hgrid=function(cx, pr, vals, at, add.label, lty=1, col=1, cex=0.5)
     }
 }
 
-cplot.title=function(cx, pr, title, cex=0.4)
+cplot.title=function(cx, pr, title, cex=0.4, height=NULL)
 {
+    hh = if (is.null(height)) pr$height/2 else height
     switch (cx$type,
             circle={
-                pp = rect2circle(cx=cx, x=0, y=pr$height/2, base.radius=cx$base.rad+cx$current.height)
+                pp = rect2circle(cx=cx, x=0, y=hh, base.radius=cx$base.rad+cx$current.height)
                 text(x=pp$x, y=pp$y, pos=2, labels=title, offset=.2, cex=cex, adj=1)
             },
             rect={
-                mtext(text=title, side=4, at=pr$height/2, cex=cex, line=-0.5, adj=0, las=1)
+                mtext(text=title, side=4, at=cx$current.height+hh, cex=cex, line=-0.5, adj=0, las=1)
 
             },
             stop("unknown type"))
@@ -191,7 +207,7 @@ cplot.margin.text=function(cx, pr, x, is.top, labels, cex=0.25)
     hh = cx$current.height
     switch (cx$type,
             circle={
-                yval = if (is.top) 2*pr$height else -2*pr$height
+                yval = if (is.top) 2*pr$height else -1.5*pr$height
                 pp = rect2circle(cx=cx, x=x, y=yval, base.radius=(cx$base.rad+cx$current.height))
                 pp$adj = ifelse(pp$deg < -90, 1, 0)
                 pp$deg = ifelse(pp$deg < -90, pp$deg + 180, pp$deg)
@@ -200,7 +216,8 @@ cplot.margin.text=function(cx, pr, x, is.top, labels, cex=0.25)
             },
             rect={
                 pos = if (is.top) 3 else 1
-                text(x=x, y=cx$current.height+pr$height, labels=labels, adj=-0.1,
+                adj = if (is.top) -0.1 else +0.1
+                text(x=x, y=cx$current.height+pr$height, labels=labels, adj=adj,
                      srt=45, xpd=NA, cex=cex)
             },
             stop("unknown type"))
