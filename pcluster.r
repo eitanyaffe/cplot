@@ -214,8 +214,9 @@ plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T)
 plot.sets=function()
 {
     plot.rep = T
-    title.ids = c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts")
+    # title.ids = c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts")
     # title.ids = c("uniq_new_guts_cycles")
+    title.ids = "uniq_ecos_21k_cycles"
     for (set.title in title.ids)
         plot.set(set.title=set.title, plot.rep=plot.rep)
 }

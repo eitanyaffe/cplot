@@ -129,8 +129,19 @@ cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, label
 
 }
 
+basic.multi.label.f=function(df, i)
+{
+    MDC = df$MDC[i]
+    len = df$length[i]
+    cclass = df$classification[i]
+
+    label.len = if (len > 9999) paste0(round(len/1000),"kb", collapse="") else paste0(len,"b", collapse="")
+    c(id, cycle, paste0(round(MDC),"x", collapse=""), label.len)
+}
+
 # style: r=rectangle, h=horizontal, v=vertical
-cplot.multi=function(profiles, df, cc, base.rad, plot.height.per.cycle, extra=1.1, style="r", ofn)
+cplot.multi=function(profiles, df, cc, base.rad, plot.height.per.cycle, label.f=basic.multi.label.f, extra=1.1, style="r",
+                     multi.flag=T, gap.factor=1, ofn)
 {
     cat(sprintf("plotting %d cycles in single plot: %s\n", dim(df)[1], ofn))
     # df$factor = df$length / min(df$length)
@@ -172,20 +183,16 @@ cplot.multi=function(profiles, df, cc, base.rad, plot.height.per.cycle, extra=1.
         cycle = df$cycle[i]
         id = df$id[i]
         sample = df$sample[i]
-        MDC = df$MDC[i]
         len = df$length[i]
-        cclass = df$classification[i]
-
-        label.len = if (len > 9999) paste0(round(len/1000),"kb", collapse="") else paste0(len,"b", collapse="")
-        label = c(id, cycle, paste0(round(MDC),"x", collapse=""), label.len)
+        label = label.f(df=df, i=i)
 
         text(x=df$center.x[i], y=df$center.y[i], labels=paste(label, collapse="\n"), cex=0.5)
 
         cx = list(sample=sample, cycle=cycle,
                   max.coord=len, center.x=df$center.x[i], center.y=df$center.y[i],
                   heights=get.height.sum(profiles=profiles), base.rad=base.rad,
-                  gap.factor=1, arc.n=0.01,
-                  type="circle", border.col="gray", npoints=360*2, multi=T)
+                  gap.factor=gap.factor, arc.n=0.01,
+                  type="circle", border.col="gray", npoints=360*2, multi=multi.flag)
         cplot(cx=cx, profiles=profiles)
     }
     graphics.off()
