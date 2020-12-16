@@ -5,7 +5,7 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
     # internal radius of circles
     base.rad = 6
 
-    odir.cluster = paste0(odir, "/clusters/", cluster)
+    odir.cluster = paste0(odir, "/", cluster)
     odir.legend = paste0(odir.cluster, "/legends")
     odir.circle = paste0(odir.cluster, "/circles")
     odir.rect = paste0(odir.cluster, "/rects")
@@ -18,58 +18,40 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
     ll$df$id = ll$df$sample
     profiles.cluster = list(
         cov.profile(height=3, title="cov", cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4),
-        empty.profile(height=1),
-        gene.identity.profile(height=0.5, table=ll$gene.df, plot.trig=T, add.label=T, is.top=F),
+        empty.profile(height=0.5),
+        gene.identity.profile(height=0.5, table=ll$gene.df, plot.trig=T, add.label=F, is.top=F),
         empty.profile(height=0.1),
+        gene.uniref.count.profile(height=0.4, table=gene.df, odir.legend=odir.legend),
+        empty.profile(height=0.5),
         gene.class.profile(height=0.5, table=ll$gene.df, cclass="mobile", col.list=class.col.list),
-        empty.profile(height=0.05),
+        empty.profile(height=0.1),
         gene.class.profile(height=0.5, table=ll$gene.df, cclass="plasmid", col.list=class.col.list),
-        empty.profile(height=0.05),
+        empty.profile(height=0.1),
         gene.class.profile(height=0.5, table=ll$gene.df, cclass="phage", col.list=class.col.list),
-        empty.profile(height=0.2),
+        empty.profile(height=0.5),
         align.profile(base.height=0.75, dfc=dfc, table.cycles=ll$df, table.align=ll$dfx, table.snps=ll$dfs),
-        vlines.profile(table=ll$cc, field="cum_sum", lty=2))
-
-    profiles.detailed = list(
-        cov.profile(height=3, title="cov", cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4, grid.label=T),
-        empty.profile(height=0.1),
-        gene.identity.profile(height=0.4, table=ll$gene.df, odir.legend=odir.legend, plot.trig=T),
-        empty.profile(height=0.1),
-        gene.class.profile(height=0.4, table=ll$gene.df, cclass="mobile", col.list=class.col.list),
-        empty.profile(height=0.05),
-        gene.class.profile(height=0.4, table=ll$gene.df, cclass="plasmid", col.list=class.col.list),
-        empty.profile(height=0.05),
-        gene.class.profile(height=0.4, table=ll$gene.df, cclass="phage", col.list=class.col.list, add.label=T),
         vlines.profile(table=ll$cc, field="cum_sum", lty=2))
 
     ofn = paste0(odir.sets, "/", cluster, ".pdf")
 
     if (!plot.rep) {
         cplot.multi(profiles=profiles.cluster, df=ll$df, cc=ll$cc, base.rad=base.rad,
-                    plot.height.per.cycle=3, style="r", extra=1.1, ofn=ofn)
-#        cplot.singles(profiles=profiles.detailed, df=ll$df, cc=ll$cc, base.rad=base.rad,
-#                      odir.circle=odir.circle, odir.rect=odir.rect)
+                    plot.height.per.cycle=4, style="r", extra=1.1, ofn=ofn)
     } else {
-        odir.circle = paste0(odir, "/cluster_reps/circles")
-        odir.rect = paste0(odir, "/cluster_reps/rects")
+        odir.circle = paste0(odir, "/reps/circles")
+        odir.rect = paste0(odir, "/reps/rects")
         system(paste("mkdir -p", odir.circle, odir.rect))
-        df = ll$df[which.max(ll$df$length),]
+
+        if (any(ll$df$sample == "cipro_clean"))
+            df = ll$df[ll$df$sample == "cipro_clean",]
+        else
+            df = ll$df[which.max(ll$df$length),]
+
         df$id = cluster
+
         cplot.singles(profiles=profiles.cluster, df=df, cc=ll$cc, base.rad=base.rad,
-                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=6, rect.inch=4)
+                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7, rect.inch=4)
     }
-}
-
-safe.read.delim=function(ifn, ...) {
-    tryCatch(read.delim(ifn, ...), error = function(c) { NULL } )
-}
-
-read.cache=function(fn, read.f=read.delim)
-{
-    if (!exists(".cache")) .cache <<- list()
-    if (!is.element(fn, names(.cache)))
-        .cache[[fn]] <<- read.f(fn)
-    .cache[[fn]]
 }
 
 plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep)
@@ -169,7 +151,7 @@ plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep)
         ll$gene.class = rbind(ll$gene.class, restrict(gene.class))
         ll$covs = rbind(ll$covs, restrict(covs))
     }
-    odir = paste0("figures/", set.title)
+    odir = paste0("figures/clusters/", set.title)
     if (!is.null(ll$df))
         plot.cluster.internal(cluster=cluster, dfc=dfc, ll=ll, odir=odir, plot.rep=plot.rep)
 }
@@ -192,10 +174,9 @@ append.cycle.data=function(dfc)
     dfc
 }
 
-plot.set=function(set.title="uniq_cycles", plot.rep)
+plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T)
 {
     idir.cluster = "/relman01/home/nshalon/work/pipe/sour/cluster"
-    idir.nucmer = "/relman01/home/nshalon/work/pipe/sour/nucmer"
 
     set.id = set.title
     if (set.title == "repeats")
@@ -213,7 +194,7 @@ plot.set=function(set.title="uniq_cycles", plot.rep)
         dfc = dfc[dfc$length < 1000,]
 
     if (set.title == "repeats") {
-        keep.samples = paste("gut", c(letters[1:5], "j"), sep="_")
+        keep.samples = paste("gut", c("b", "d", "j"), sep="_")
         dfc = dfc[ is.element(dfc$sample, keep.samples),]
     }
 
@@ -224,14 +205,18 @@ plot.set=function(set.title="uniq_cycles", plot.rep)
 
     tt = sort(table(dfc$cluster), decreasing=T)
     tt = tt[tt>1]
+    cat(sprintf("Dataset table: %s\n", paste0(idir.cluster, "/", set.id)))
+    cat(sprintf("number of clusters: %d\n", length(tt)))
     for (cluster in as.numeric(names(tt)))
         plot.cluster(dfc=dfc, cluster=cluster, set.id=set.id, set.title=set.title, plot.rep=plot.rep)
 }
 
 plot.sets=function()
 {
-    plot.rep = F
-    for (set.title in c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts"))
+    plot.rep = T
+    title.ids = c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts")
+    # title.ids = c("uniq_new_guts_cycles")
+    for (set.title in title.ids)
         plot.set(set.title=set.title, plot.rep=plot.rep)
 }
 

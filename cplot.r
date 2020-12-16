@@ -92,7 +92,22 @@ cplot.on.rect=function(sample, cycle, ofn, label, max.coord, profiles, width, he
     graphics.off()
 }
 
-cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, circle.inch=5, rect.inch=4)
+basic.label.f=function(df, i)
+{
+    sample = df$sample[i]
+    id = df$id[i]
+    cycle = df$cycle[i]
+    len = df$length[i]
+    cclass = df$classification[i]
+    MDC = df$MDC[i]
+    c(sample, id, cycle, cclass,
+      paste0(round(MDC),"x", collapse=""),
+      paste0(len, "bp"),
+      paste0("bottle=", df$bottleneck[i]),
+      paste0("score=", df$score[i]))
+}
+
+cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, label.f=basic.label.f, circle.inch=5, rect.inch=4)
 {
     cat(sprintf("plotting %d cycles into %s and %s\n", dim(df)[1], odir.circle, odir.rect))
     for (i in dim(df)[1]:1) {
@@ -100,18 +115,10 @@ cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, circl
         id = df$id[i]
         cycle = df$cycle[i]
         len = df$length[i]
-        cclass = df$classification[i]
-        MDC = df$MDC[i]
         ofn.circle = paste0(odir.circle, "/", id, "_", cycle, ".pdf")
         ofn.rect = paste0(odir.rect, "/", id, "_", cycle, ".pdf")
-        ncontigs = sum(cc$sample == sample & cc$cycle == cycle)+1
 
-        label = c(sample, id, cycle, cclass,
-                  paste0(round(MDC),"x", collapse=""),
-                  paste0(len, "bp"),
-                  paste0(ncontigs, " contigs"),
-                  paste0("bottle=", df$bottleneck[i]),
-                  paste0("score=", df$score[i]))
+        label = label.f(df=df, i=i)
 
         cplot.on.circle(sample=sample, cycle=cycle, ofn=ofn.circle, label=label, max.coord=len,
                         base.rad=base.rad, profiles=profiles,
@@ -168,7 +175,6 @@ cplot.multi=function(profiles, df, cc, base.rad, plot.height.per.cycle, extra=1.
         MDC = df$MDC[i]
         len = df$length[i]
         cclass = df$classification[i]
-        ncontigs = sum(cc$cycle == cycle)+1
 
         label.len = if (len > 9999) paste0(round(len/1000),"kb", collapse="") else paste0(len,"b", collapse="")
         label = c(id, cycle, paste0(round(MDC),"x", collapse=""), label.len)

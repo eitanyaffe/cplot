@@ -1,6 +1,23 @@
 
 ##################################################################################################################
-# util functions
+# file util functions
+##################################################################################################################
+
+safe.read.delim=function(ifn, ...) {
+    tryCatch(read.delim(ifn, ...), error = function(c) { NULL } )
+}
+
+
+read.cache=function(fn, read.f=read.delim)
+{
+    if (!exists(".cache")) .cache <<- list()
+    if (!is.element(fn, names(.cache)))
+        .cache[[fn]] <<- read.f(fn)
+    .cache[[fn]]
+}
+
+##################################################################################################################
+# general util functions
 ##################################################################################################################
 
 sample.rect.points=function(xleft, xright, ybottom, ytop, npoints)
@@ -38,9 +55,9 @@ get.grid.at=function(val.range, grid.nlines)
     grid.vals[grid.vals<val.range[2]]
 }
 
-vals2colors=function(vals, cols, breaks)
+vals2colors=function(vals, cols, breaks, all.inside=T, ...)
 {
-    ii = findInterval(vals, breaks, all.inside=T)
+    ii = findInterval(vals, breaks, all.inside=all.inside, ...)
     cols[ii]
 }
 
@@ -68,9 +85,14 @@ plot.legend=function(odir, cols, names, title)
     graphics.off()
 }
 
-plot.legend.breaks=function(odir, cols, breaks, title)
+plot.legend.breaks=function(odir, cols, breaks, title, max.bin.offset=0)
 {
-    names = paste(breaks[-length(breaks)], breaks[-1], sep="-")
+    names = paste(breaks[-length(breaks)], breaks[-1]-max.bin.offset, sep="-")
+
+    # single value
+    names = ifelse(breaks[-length(breaks)] !=  breaks[-1]-max.bin.offset, names, breaks[-length(breaks)])
+    names[length(breaks)-1] = paste0(">=", breaks[length(breaks)-1])
+
     plot.legend(odir=odir, cols=cols, names=names, title=title)
 }
 
@@ -144,7 +166,7 @@ cplot.hline=function(cx, height=0, lty=1, col=1)
             stop("unknown type"))
 }
 
-cplot.hgrid=function(cx, pr, vals, at, add.label, lty=1, col=1, cex=0.5)
+cplot.hgrid=function(cx, pr, vals, at, add.label, lty=1, col=1, cex=0.5, tick.size=0.2)
 {
     at = at + cx$current.height
     for (i in 1:length(at)) {
@@ -162,7 +184,7 @@ cplot.hgrid=function(cx, pr, vals, at, add.label, lty=1, col=1, cex=0.5)
                     pp = rect2circle(cx=cx, x=0, y=at, base.radius=cx$base.rad)
                     if (!cx$multi) {
                         text(x=pp$x, y=pp$y, pos=2, labels=vals, offset=.2, cex=cex, adj=1)
-                        segments(x0=pp$x, x1=pp$x-0.2, y0=pp$y, y1=pp$y)
+                        segments(x0=pp$x, x1=pp$x-tick.size, y0=pp$y, y1=pp$y)
                     }
                 },
                 rect={

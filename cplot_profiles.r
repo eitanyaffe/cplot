@@ -93,7 +93,7 @@ gene.identity.profile=function(height, table, add.label=F, is.top=T, plot.trig=F
     if (!is.na(odir.legend))
         plot.legend.breaks(odir=odir.legend, cols=cols, breaks=breaks, title="uniref_idenity")
 
-    gene.profile(height=height, title="identity", table=table, col.field="identity.col", plot.trig=plot.trig,
+    gene.profile(height=height, title="ref %", table=table, col.field="identity.col", plot.trig=plot.trig,
                  add.label=add.label, is.top=is.top)
 }
 
@@ -101,6 +101,17 @@ gene.class.profile=function(height, table, cclass, col.list, add.label=F, is.top
 {
     table$class.col = ifelse(grepl(cclass, table$class), col.list[[cclass]], "gray")
     gene.profile(height=height, title=cclass, table=table, col.field="class.col",
+                 add.label=add.label, is.top=is.top)
+}
+
+gene.uniref.count.profile=function(height, table, cclass, col.list, add.label=F, is.top=T, plot.trig=F, odir.legend=NA)
+{
+    breaks = c(0, 1, 10, 100)
+    cols = c("darkgray", "pink", "red")
+    table$ucount.col = vals2colors(vals=table$uniref_count, breaks=breaks, cols=cols)
+    if (!is.na(odir.legend))
+        plot.legend.breaks(odir=odir.legend, cols=cols, breaks=breaks, title="uniref_count", max.bin.offset=1)
+    gene.profile(height=height, title="ref #", table=table, col.field="ucount.col", plot.trig=plot.trig,
                  add.label=add.label, is.top=is.top)
 }
 
@@ -145,10 +156,12 @@ plot.cov.f=function(cx, pr)
         rr[,fields[i]] = pr$height * sapply(split(table[,fields[i]], ccut), median) / val.range[2]
 
     cplot.hgrid(cx=cx, pr=pr, lty=1, col="gray",
-                vals=grid.vals, at=grid.at, add.label=pr$grid.label, cex=pr$axis.cex)
+                vals=grid.vals, at=grid.at, add.label=pr$grid.label, cex=pr$axis.cex, tick.size=pr$tick.size)
 
-    MDC.y = val2y(vals=MDC, val.range=val.range, height=pr$height)
-    cplot.hline(cx=cx, height=MDC.y, lty=pr$MDC.lty, col=pr$MDC.col)
+    if (pr$plot.MDC) {
+        MDC.y = val2y(vals=MDC, val.range=val.range, height=pr$height)
+        cplot.hline(cx=cx, height=MDC.y, lty=pr$MDC.lty, col=pr$MDC.col)
+    }
 
     for (i in 1:length(fields))
         cplot.lines(cx=cx, table=rr, yfield=fields[i], col=pr$cols[i], lwd=pr$lwd)
@@ -156,17 +169,18 @@ plot.cov.f=function(cx, pr)
 }
 
 cov.profile=function(height=1, title="coverage", cov.table, cycle.table,
-                     grid.label=F, grid.nlines, axis.cex=0.4, lwd=1,
+                     grid.label=F, grid.nlines, axis.cex=0.4, lwd=1, plot.MDC=T, tick.size=0.2,
+                     fields=c("support", "out_cov", "in_cov", "out_paired_weird", "in_paired_weird", "out_singleton", "in_singleton"),
+                     cols.list = list(support="black", out_cov="blue", in_cov="darkblue", out_paired_weird="red", in_paired_weird="darkred", out_singleton="green", in_singleton="darkgreen"),
                      MDC.lty=1, MDC.col="red")
 {
-    fields = c("support",
-               "out_cov", "in_cov",
-               "out_paired_weird", "in_paired_weird",
-               "out_singleton", "in_singleton")
-    cols = c("black", "blue", "darkblue", "red", "darkred", "green", "darkgreen")
+    if (any(is.na(match(fields, names(cols.list)))))
+        stop("undefined field")
+    cols = unlist(cols.list[match(fields, names(cols.list))])
 
     list(height=height, title=title, cycle.table=cycle.table, cov.table=cov.table, lwd=lwd,
-         fields=fields, cols=cols, axis.cex=axis.cex, MDC.lty=MDC.lty, MDC.col=MDC.col,
+         fields=fields, cols=cols, axis.cex=axis.cex, tick.size=tick.size,
+         plot.MDC=plot.MDC, MDC.lty=MDC.lty, MDC.col=MDC.col,
          grid.label=grid.label, grid.nlines=grid.nlines,
          plot.f=plot.cov.f)
 }
