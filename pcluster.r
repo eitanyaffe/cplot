@@ -1,5 +1,14 @@
 options(stringsAsFactors=F)
 
+cluster.label.f=function(df, i)
+{
+    c(df$cluster[i],
+      paste0(df$sample[i], ":", df$cycle[i]),
+      df$classification[i],
+      paste0(round(df$MDC[i]),"x", collapse=""),
+      paste0(df$length[i], "bp"))
+}
+
 plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
 {
     # internal radius of circles
@@ -15,13 +24,13 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
     class.col.list = list(mobile="darkgreen", plasmid="darkred", phage="orange")
     plot.legend(odir=odir.legend, cols=unlist(class.col.list), names=names(class.col.list), title="gene_class")
 
-    ll$df$id = ll$df$sample
+    ll$df$cluster = cluster
     profiles.cluster = list(
         cov.profile(height=3, title="cov", cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4),
         empty.profile(height=0.5),
         gene.identity.profile(height=0.5, table=ll$gene.df, plot.trig=T, add.label=F, is.top=F),
         empty.profile(height=0.1),
-        gene.uniref.count.profile(height=0.4, table=gene.df, odir.legend=odir.legend),
+        gene.uniref.count.profile(height=0.4, table=ll$gene.df, odir.legend=odir.legend),
         empty.profile(height=0.5),
         gene.class.profile(height=0.5, table=ll$gene.df, cclass="mobile", col.list=class.col.list),
         empty.profile(height=0.1),
@@ -35,8 +44,11 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
     ofn = paste0(odir.sets, "/", cluster, ".pdf")
 
     if (!plot.rep) {
-        cplot.multi(profiles=profiles.cluster, df=ll$df, cc=ll$cc, base.rad=base.rad,
-                    plot.height.per.cycle=4, style="r", extra=1.1, ofn=ofn)
+#        cplot.multi(profiles=profiles.cluster, df=ll$df, cc=ll$cc, base.rad=base.rad,
+#                    label.f=cluster.label.f,
+#                    plot.height.per.cycle=4, style="r", extra=1.1, ofn=ofn)
+        cplot.singles(profiles=profiles.cluster, df=ll$df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
+                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7, rect.inch=4)
     } else {
         odir.circle = paste0(odir, "/reps/circles")
         odir.rect = paste0(odir, "/reps/rects")
@@ -46,10 +58,8 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
             df = ll$df[ll$df$sample == "cipro_clean",]
         else
             df = ll$df[which.max(ll$df$length),]
-
         df$id = cluster
-
-        cplot.singles(profiles=profiles.cluster, df=df, cc=ll$cc, base.rad=base.rad,
+        cplot.singles(profiles=profiles.cluster, df=df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
                       odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7, rect.inch=4)
     }
 }
@@ -124,12 +134,14 @@ plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep)
 
         # !!! overriding value in table. For example, in sample is SENB in /oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/sewage_b_0.0/dominant_cycles_filter/cycle_summary_classification
         df$sample = sample
+        df$id = sample
 
         # uniref
         ix = match(gene.df$gene, uniref$gene)
         gene.df$desc = ifelse(!is.na(ix), uniref$prot_desc[ix], "no_hit")
         gene.df$taxa = ifelse(!is.na(ix), uniref$tax[ix], "no_hit")
         gene.df$identity = ifelse(!is.na(ix), uniref$identity[ix], 0)
+        gene.df$uniref_count = ifelse(!is.na(ix), uniref$uniref_count[ix], 0)
         gene.df$label = gene.df$gene
 
         # class
@@ -213,10 +225,10 @@ plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T)
 
 plot.sets=function()
 {
-    plot.rep = T
+    plot.rep = F
     # title.ids = c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts")
     # title.ids = c("uniq_new_guts_cycles")
-    title.ids = "uniq_ecos_21k_cycles"
+    title.ids = "uniq_final_k21_cycles"
     for (set.title in title.ids)
         plot.set(set.title=set.title, plot.rep=plot.rep)
 }

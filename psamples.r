@@ -1,5 +1,23 @@
 options(stringsAsFactors=F)
 
+sample.label.f=function(df, i)
+{
+    MDC =
+    c(paste0(df$sample.title[i], ":", df$cycle[i], collapse=""),
+      df$classification[i],
+      paste0(round(df$MDC[i]),"x", collapse=""),
+      paste0(df$length[i], "bp"))
+}
+
+sample.multi.label.f=function(df, i)
+{
+    MDC =
+    c(paste0(df$sample.title[i], ":", df$cycle[i], collapse=""),
+      df$classification[i],
+      paste0(round(df$MDC[i]),"x", collapse=""),
+      paste0(df$length[i], "bp"))
+}
+
 plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="only_long")
 {
     idir = paste0("/oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/", sample, "_0.0")
@@ -7,6 +25,15 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
 
     # load tables
     df = read.cache(paste0(idir, "/dominant_cycles_filter/cycle_summary_classification"))
+
+    df = switch(length.filter,
+                only_short=df[df$length < 1000,],
+                only_long=df[df$length >= 1000,],
+                very_long=df[df$length >= 10000,],
+                all=df)
+    if (is.null(df) || dim(df)[1] ==0)
+        return (NULL)
+
     cc = read.cache(paste0(idir, "/cycle_contig_table"))
 
     if (file.exists(paste0(idir, "/dominant_cycles_filter/prodigal/v1/gene.tab"))) {
@@ -30,6 +57,7 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
 
     # !!! overriding value in table. For example, in sample is SENB in /oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/sewage_b_0.0/dominant_cycles_filter/cycle_summary_classification
     df$sample = sample
+    df$sample.title = sample.title
     df = df[order(df$MDC, decreasing=T),]
 
     # uniref
@@ -38,7 +66,6 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
     gene.df$taxa = ifelse(!is.na(ix), uniref$tax[ix], "no_hit")
     gene.df$identity = ifelse(!is.na(ix), uniref$identity[ix], 0)
     gene.df$uniref_count = ifelse(!is.na(ix), uniref$uniref_count[ix], 0)
-    gene.df$label = gene.df$gene
 
     # class
     gene.df$class = ""
@@ -46,21 +73,35 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
         gene.df$class[i] = paste(sort(unique(gene.class$classification[gene.class$gene == gene.df$gene[i]])),
                                  collapse=",")
     }
+    # gene.df$label = gene.df$gene
+
+    gene.df$label = ""
+    classes = c("phage", "plasmid", "mobile")
+    for (cls in classes) {
+        dcc = gene.class[gene.class$classification == cls,]
+        ss = split(dcc$description, dcc$gene)
+        desc = sapply(ss, function(x) {
+            if (all(nchar(x) > 64))
+                return ("")
+            x = x[nchar(x)<=64]
+            x[which.min(nchar(x))]
+        })
+        ix = match(gene.df$gene, names(desc))
+        gene.df$label = ifelse(gene.df$label != "", gene.df$label,
+                        ifelse(!is.na(ix), ifelse(desc[ix] != "", paste0(cls, " | ", desc[ix]), cls), ""))
+    }
+    gene.df$label = ""
 
     cc = cc[cc$cum_sum != 1,]
 
-    df = switch(length.filter,
-                only_short=df[df$length < 1000,],
-                only_long=df[df$length >= 1000,],
-                all=df)
     df$id = sample.title
 
     # internal radius of circles
     base.rad = 5
 
     odir.base = "figures"
-    odir.sample = paste0(odir.base, "/samples/", sample.title, "/", length.filter)
-    odir.grouped = paste0(odir.base, "/samples/sets")
+    odir.sample = paste0(odir.base, "/samples/", length.filter, "/", sample.title)
+    odir.grouped = paste0(odir.base, "/samples/", length.filter, "/sets")
     odir.circle = paste0(odir.sample, "/circles")
     odir.rect = paste0(odir.sample, "/rects")
     odir.legend = paste0(odir.base, "/legends")
@@ -86,7 +127,7 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
         gene.class.profile(height=0.4, table=gene.df, cclass="phage", col.list=class.col.list, add.label=T),
         vlines.profile(table=cc, field="cum_sum", lty=2))
     cplot.singles(profiles=profiles.detailed, df=df, cc=cc, base.rad=base.rad,
-                  odir.circle=odir.circle, odir.rect=odir.rect)
+                  odir.circle=odir.circle, odir.rect=odir.rect, label.f=sample.label.f)
 
     #######################################################################################
     # plot all cycles of sample together
@@ -108,24 +149,33 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
     ofn.sample = paste0(odir.grouped, "/", sample.title, "_", length.filter, ".pdf")
     cplot.multi(profiles=profiles.multi, df=df, cc=cc,
                 base.rad=base.rad, plot.height.per.cycle=1.5, extra=1.1, style="r",
-                ofn=ofn.sample)
+                ofn=ofn.sample, label.f=sample.multi.label.f)
 }
 
 plot.samples=function()
 {
     length.filter = "all"
     ll = list(AAB.1="cipro_clean", AAB.2="cipro_b", FP.1="FP", FP.2="FP_B")
+    ll = list(pilot_gut="cipro_clean")
     for (i in 1:length(ll))
         plot.sample(sample.title=names(ll)[i], sample=ll[[i]], length.filter=length.filter)
 }
 
-rls=function()
+plot.long.cycles=function()
+{
+    length.filter = "very_long"
+    samples = c(paste0("gut_", letters[11:20]), paste0("ocean_", c(LETTERS[2:10], "m", "l")), paste0("sewage_", letters[1:10]))
+    for (i in 1:length(samples))
+        plot.sample(sample.title=samples[i], sample=samples[i], length.filter=length.filter)
+}
+
+rl.samples=function()
 {
     source("cplot.r")
     source("psamples.r")
 }
 
-exs=function()
+ex.samples=function()
 {
     plot.samples()
 }

@@ -117,7 +117,8 @@ align.profile=function(base.height=0.05, title="coverage", dfc, table.cycles, ta
     df.offset = get.align.offset(df=table.align, df.cycs=table.cycles)
 
     # align.cols = colorRampPalette(c("darkblue", colors()[43]))(100)
-    align.cols = colorRampPalette(c(colors()[610], colors()[614]))(100)
+    # align.cols = colorRampPalette(c(colors()[610], colors()[614]))(100)
+    align.cols = colorRampPalette(c(colors()[364], colors()[339]))(100)
     table.align.segs = segment.alignment(dfc=table.cycles, dfa=table.align, dfo=df.offset, cols=align.cols)
 
     nts = c("A", "C", "G", "T")

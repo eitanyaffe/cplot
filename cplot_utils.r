@@ -257,7 +257,9 @@ cplot.rect=function(cx, xleft, xright, ybottom, ytop, ...)
     hh = cx$current.height
     switch (cx$type,
             circle={
-                pp = sample.rect.points(xleft=xleft, xright=xright, ybottom=ybottom, ytop=ytop, npoints=cx$npoints)
+                degrees = min(360, (360 * abs(xright - xleft)) / cx$max.coord)
+                npoints = 2 * max(1,round(degrees))
+                pp = sample.rect.points(xleft=xleft, xright=xright, ybottom=ybottom, ytop=ytop, npoints=npoints)
                 cplot.polygon(cx=cx, x=pp$x, y=pp$y, ...)
             },
             rect={
