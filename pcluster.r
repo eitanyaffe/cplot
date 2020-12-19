@@ -9,16 +9,18 @@ cluster.label.f=function(df, i)
       paste0(df$length[i], "bp"))
 }
 
-plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
+plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir, plot.gene.label)
 {
     # internal radius of circles
     base.rad = 6
 
-    odir.cluster = paste0(odir, "/", cluster)
+    gene.label.id = if(plot.gene.label) "labelled" else ""
+
+    odir.cluster = paste0(odir, "/", gene.label.id, "/", cluster)
     odir.legend = paste0(odir.cluster, "/legends")
     odir.circle = paste0(odir.cluster, "/circles")
     odir.rect = paste0(odir.cluster, "/rects")
-    odir.sets = paste0(odir, "/sets")
+    odir.sets = paste0(odir, "/sets/", gene.label.id)
     system(paste("mkdir -p", odir.cluster, odir.legend, odir.circle, odir.rect, odir.sets))
 
     class.col.list = list(mobile="darkgreen", plasmid="darkred", phage="orange")
@@ -28,7 +30,8 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
     profiles.cluster = list(
         cov.profile(height=3, title="cov", cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4),
         empty.profile(height=0.5),
-        gene.identity.profile(height=0.5, table=ll$gene.df, plot.trig=T, add.label=F, is.top=F),
+        gene.start.profile(height=0.2, table=ll$gene.df),
+        gene.identity.profile(height=0.5, table=ll$gene.df, plot.trig=F, add.label=F, is.top=F),
         empty.profile(height=0.1),
         gene.uniref.count.profile(height=0.4, table=ll$gene.df, odir.legend=odir.legend),
         empty.profile(height=0.5),
@@ -39,6 +42,7 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
         gene.class.profile(height=0.5, table=ll$gene.df, cclass="phage", col.list=class.col.list),
         empty.profile(height=0.5),
         align.profile(base.height=0.75, dfc=dfc, table.cycles=ll$df, table.align=ll$dfx, table.snps=ll$dfs),
+        gene.start.profile(height=0.2, table=ll$gene.df, col.strand=F, add.label=plot.gene.label, is.top=T),
         vlines.profile(table=ll$cc, field="cum_sum", lty=2))
 
     ofn = paste0(odir.sets, "/", cluster, ".pdf")
@@ -64,7 +68,7 @@ plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir)
     }
 }
 
-plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep)
+plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep, plot.gene.label)
 {
     idir.cluster = "/relman01/home/nshalon/work/pipe/sour/cluster"
     idir.nucmer = "/relman01/home/nshalon/work/pipe/sour/nucmer"
@@ -164,8 +168,10 @@ plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep)
         ll$covs = rbind(ll$covs, restrict(covs))
     }
     odir = paste0("figures/clusters/", set.title)
+
     if (!is.null(ll$df))
-        plot.cluster.internal(cluster=cluster, dfc=dfc, ll=ll, odir=odir, plot.rep=plot.rep)
+        plot.cluster.internal(cluster=cluster, dfc=dfc, ll=ll, odir=odir, plot.rep=plot.rep,
+                              plot.gene.label=plot.gene.label)
 }
 
 append.cycle.data=function(dfc)
@@ -186,7 +192,7 @@ append.cycle.data=function(dfc)
     dfc
 }
 
-plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T)
+plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T, plot.gene.label=T)
 {
     idir.cluster = "/relman01/home/nshalon/work/pipe/sour/cluster"
 
@@ -220,7 +226,8 @@ plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T)
     cat(sprintf("Dataset table: %s\n", paste0(idir.cluster, "/", set.id)))
     cat(sprintf("number of clusters: %d\n", length(tt)))
     for (cluster in as.numeric(names(tt)))
-        plot.cluster(dfc=dfc, cluster=cluster, set.id=set.id, set.title=set.title, plot.rep=plot.rep)
+        plot.cluster(dfc=dfc, cluster=cluster, set.id=set.id, set.title=set.title, plot.rep=plot.rep,
+                     plot.gene.label=plot.gene.label)
 }
 
 plot.sets=function()
@@ -229,8 +236,9 @@ plot.sets=function()
     # title.ids = c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts")
     # title.ids = c("uniq_new_guts_cycles")
     title.ids = "uniq_final_k21_cycles"
-    for (set.title in title.ids)
-        plot.set(set.title=set.title, plot.rep=plot.rep)
+    for (plot.gene.label in c(T,F))
+        for (set.title in title.ids)
+            plot.set(set.title=set.title, plot.rep=plot.rep, plot.gene.label=plot.gene.label)
 }
 
 rlc=function()

@@ -22,8 +22,8 @@ read.cache=function(fn, read.f=read.delim)
 
 sample.rect.points=function(xleft, xright, ybottom, ytop, npoints)
 {
-    xx = seq(xleft, xright, length.out=npoints/2)
-    data.frame(x=c(xx, rev(xx)), y=c(rep(ybottom, npoints/2), rep(ytop, npoints/2)))
+    xx = seq(xleft, xright, length.out=npoints)
+    data.frame(x=c(xx, rev(xx)), y=c(rep(ybottom, npoints), rep(ytop, npoints)))
 }
 
 coord2angle=function(cx, x)

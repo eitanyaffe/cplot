@@ -61,8 +61,10 @@ plot.nucmer.cluster=function(dfc, set.id, set.title, cluster)
     idir.cluster = "/relman01/home/nshalon/work/pipe/sour/cluster"
     idir.nucmer = "/relman01/home/nshalon/work/pipe/sour/nucmer"
 
-    dfx = read.cache(paste0(idir.nucmer, "/", set.id, "/CLUSTER_", cluster, ".coords"), function(fn) { read.delim(fn, header=F) })
-    dfs = read.cache(paste0(idir.nucmer, "/", set.id, "/CLUSTER_", cluster, ".snps"), function(fn) { safe.read.delim(fn, header=F) })
+    dfx = read.cache(paste0(idir.nucmer, "/", set.id, "/CLUSTER_", cluster, ".coords"), function(fn)
+    { read.delim(fn, header=F) })
+    dfs = read.cache(paste0(idir.nucmer, "/", set.id, "/CLUSTER_", cluster, ".snps"), function(fn)
+    { safe.read.delim(fn, header=F) })
 
     dfc = dfc[dfc$cluster == cluster,]
     dfc$key = paste0(dfc$sample, "_", dfc$cycle)
@@ -87,7 +89,8 @@ plot.nucmer.cluster=function(dfc, set.id, set.title, cluster)
         dfs$key1 = paste0(dfs$sample1, "_", dfs$cycle1)
         dfs$key2 = paste0(dfs$sample2, "_", dfs$cycle2)
     } else {
-        dfs = setNames(data.frame(matrix(ncol = 8, nrow = 0)), c("base1", "base2", "nt1", "nt2", "name1", "name2", "key1", "key2"))
+        dfs = setNames(data.frame(matrix(ncol = 8, nrow = 0)),
+                       c("base1", "base2", "nt1", "nt2", "name1", "name2", "key1", "key2"))
     }
 
     dfx = dfx[is.element(dfx$key1, dfc$key) & is.element(dfx$key2, dfc$key),]
@@ -124,7 +127,8 @@ plot.nucmer.cluster=function(dfc, set.id, set.title, cluster)
                 plot.new()
                 plot.window(xlim=0:1, ylim=0:1)
                 ix = match(key1, dfc$key)
-                text(x=0.5, y=0.5, paste0(dfc$sample[ix], "\n", dfc$cycle[ix], "\n", df.ii$length1, "bp"), font=2, cex=1.25)
+                text(x=0.5, y=0.5, paste0(dfc$sample[ix], "\n", dfc$cycle[ix], "\n",
+                                          df.ii$length1, "bp"), font=2, cex=1.25)
                 box()
             } else if (i1 > i2) {
                 par(mai=c(gap,gap,gap,gap))

@@ -18,7 +18,7 @@ sample.multi.label.f=function(df, i)
       paste0(df$length[i], "bp"))
 }
 
-plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="only_long")
+plot.sample=function(sample="cipro_clean", plot.gene.label=F, sample.title="AAB", length.filter="only_long")
 {
     idir = paste0("/oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/", sample, "_0.0")
     cat(sprintf("loading sample %s from dir: %s\n", sample, idir))
@@ -99,9 +99,11 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
     # internal radius of circles
     base.rad = 5
 
+    gene.label.id = if(plot.gene.label) "_label" else ""
+
     odir.base = "figures"
-    odir.sample = paste0(odir.base, "/samples/", length.filter, "/", sample.title)
-    odir.grouped = paste0(odir.base, "/samples/", length.filter, "/sets")
+    odir.sample = paste0(odir.base, "/samples/", length.filter, gene.label.id, "/", sample.title)
+    odir.grouped = paste0(odir.base, "/samples/", length.filter, gene.label.id, "/sets")
     odir.circle = paste0(odir.sample, "/circles")
     odir.rect = paste0(odir.sample, "/rects")
     odir.legend = paste0(odir.base, "/legends")
@@ -116,7 +118,8 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
     profiles.detailed = list(
         cov.profile(height=3, title="cov", cov.table=covs, cycle.table=df, grid.nlines=5, grid.label=T),
         empty.profile(height=0.5),
-        gene.identity.profile(height=0.4, table=gene.df, odir.legend=odir.legend, plot.trig=T),
+        gene.start.profile(height=0.2, table=gene.df),
+        gene.identity.profile(height=0.4, table=gene.df, odir.legend=odir.legend),
         empty.profile(height=0.1),
         gene.uniref.count.profile(height=0.4, table=gene.df, odir.legend=odir.legend),
         empty.profile(height=0.5),
@@ -125,6 +128,7 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
         gene.class.profile(height=0.4, table=gene.df, cclass="plasmid", col.list=class.col.list),
         empty.profile(height=0.1),
         gene.class.profile(height=0.4, table=gene.df, cclass="phage", col.list=class.col.list, add.label=T),
+        gene.start.profile(height=0.2, table=gene.df, col.strand=F, add.label=plot.gene.label, is.top=T),
         vlines.profile(table=cc, field="cum_sum", lty=2))
     cplot.singles(profiles=profiles.detailed, df=df, cc=cc, base.rad=base.rad,
                   odir.circle=odir.circle, odir.rect=odir.rect, label.f=sample.label.f)
@@ -136,6 +140,7 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
     profiles.multi = list(
         cov.profile(height=3, title="cov", cov.table=covs, cycle.table=df, grid.nlines=0),
         empty.profile(height=0.5),
+        gene.start.profile(height=0.2, table=gene.df),
         gene.identity.profile(height=0.4, table=gene.df, plot.trig=F),
         empty.profile(height=0.1),
         gene.uniref.count.profile(height=0.4, table=gene.df, odir.legend=odir.legend),
@@ -154,11 +159,17 @@ plot.sample=function(sample="cipro_clean", sample.title="AAB", length.filter="on
 
 plot.samples=function()
 {
-    length.filter = "all"
     ll = list(AAB.1="cipro_clean", AAB.2="cipro_b", FP.1="FP", FP.2="FP_B")
     ll = list(pilot_gut="cipro_clean")
-    for (i in 1:length(ll))
-        plot.sample(sample.title=names(ll)[i], sample=ll[[i]], length.filter=length.filter)
+
+    for (plot.gene.label in c(T, F)) {
+        for (i in 1:length(ll)) {
+            length.filter = "all"
+            sample.title = names(ll)[i]
+            sample = ll[[i]]
+            plot.sample(sample.title=sample.title, sample=sample, length.filter=length.filter, plot.gene.label=plot.gene.label)
+        }
+    }
 }
 
 plot.long.cycles=function()

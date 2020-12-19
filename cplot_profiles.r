@@ -41,12 +41,12 @@ vlines.profile=function(title="vline.profile", lty=2, table, field)
 # col.field: color field of gene (if not supplied we color by strand)
 # label: text label
 
-gene.profile=function(height=1, title="line.profile", table, col.field, add.label, is.top, plot.trig=F)
+gene.profile=function(height=1, title="line.profile", table, col.field, add.label, is.top,
+                      plot.only.strand=F, plot.trig=F)
 {
     list(title=title, height=height, table=table, is.top=is.top, plot.trig=plot.trig,
          plot.f=function(cx, pr) {
              table = restrict.table(pr$table, cx)
-
              trig.width = if (cx$max.coord > 50000) cx$max.coord/720 else cx$max.coord/360
              label.coords = (table$start  + table$end)/2
 
@@ -62,15 +62,19 @@ gene.profile=function(height=1, title="line.profile", table, col.field, add.labe
              for (i in 1:dim(table)[1]) {
                  cplot.rect(cx=cx, xleft=table$start[i], xright=table$end[i], ybottom=0, ytop=pr$height,
                             col=table$col[i], border=NA)
-                 if (table$strand[i] == "+") {
-                     trig.x = c(table$start[i], table$start[i], table$start[i]+trig.width)
-                     trig.y = c(0, height, height/2)
-                 } else {
+             }
+             cplot.vsegs(cx=cx, x=table$start, y0=0, y1=pr$height, lwd=0.25, col="darkgray")
+             if (plot.trig) {
+                 for (i in 1:dim(table)[1]) {
+                     if (table$strand[i] == "+") {
+                         trig.x = c(table$start[i], table$start[i], table$start[i]+trig.width)
+                         trig.y = c(0, height, height/2)
+                     } else {
                      trig.x = c(table$end[i], table$end[i], table$end[i]-trig.width)
                      trig.y = c(0, height, height/2)
-                 }
-                 if (plot.trig)
+                     }
                      cplot.polygon(cx=cx, x=trig.x, y=trig.y, col=1, border=NA)
+                 }
              }
              if (add.label && !cx$multi) {
                  labels = table$label
@@ -78,8 +82,25 @@ gene.profile=function(height=1, title="line.profile", table, col.field, add.labe
                      grepl("uncharacterized", labels, ignore.case=T) |
                      grepl("no_hit", labels, ignore.case=T)
                  labels[ix] = ""
-                 cplot.margin.text(cx=cx, pr=pr, x=label.coords, labels=labels, is.top=pr$is.top)
+                 cplot.margin.text(cx=cx, pr=pr, x=table$start, labels=labels, is.top=pr$is.top)
              }
+         })
+}
+
+gene.start.profile=function(height, table, col.strand=T, add.label=F, is.top=F)
+{
+    list(title="x", height=height, table=table,
+         is.top=is.top, add.label=add.label, col.strand=col.strand,
+         plot.f=function(cx, pr) {
+             table = restrict.table(pr$table, cx)
+             table$coord = ifelse(table$strand == "+", table$start, table$end)
+             if (col.strand)
+                 table$col = ifelse(table$strand == "+", "red", "blue")
+             else
+                 table$col = "black"
+             cplot.vsegs(cx=cx, x=table$coord, y0=0, y1=pr$height, lwd=0.5, col=table$col)
+             if (add.label && !cx$multi)
+                 cplot.margin.text(cx=cx, pr=pr, x=table$coord, labels=table$gene, is.top=pr$is.top)
          })
 }
 
@@ -112,13 +133,6 @@ gene.uniref.count.profile=function(height, table, cclass, col.list, add.label=F,
     if (!is.na(odir.legend))
         plot.legend.breaks(odir=odir.legend, cols=cols, breaks=breaks, title="uniref_count", max.bin.offset=1)
     gene.profile(height=height, title="ref #", table=table, col.field="ucount.col", plot.trig=plot.trig,
-                 add.label=add.label, is.top=is.top)
-}
-
-gene.strand.profile=function(height, table, add.label=F, is.top=T, plot.trig=F)
-{
-    table$strand.col = ifelse(table$strand == "+", "red", "blue")
-    gene.profile(height=height, title="strand", table=table, col.field="strand.col", plot.trig=plot.trig,
                  add.label=add.label, is.top=is.top)
 }
 
