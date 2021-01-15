@@ -104,6 +104,39 @@ gene.start.profile=function(height, table, col.strand=T, add.label=F, is.top=F)
          })
 }
 
+gene.arrow.profile=function(height, table, add.label=F, is.top=T)
+{
+    list(title="", height=height, table=table, add.label=add.label, is.top=is.top,
+         plot.f=function(cx, pr) {
+             trig.width = if (cx$max.coord > 50000) cx$max.coord/720 else cx$max.coord/360
+             table = restrict.table(pr$table, cx)
+             table$coord = (table$start + table$end) / 2
+
+             cplot.rect(cx=cx, xleft=0, xright=cx$max.coord, ybottom=0, ytop=pr$height, col="lightgray", border=NA)
+
+             if (pr$add.label)
+                 table$col = ifelse(table$label != "", "darkgray", "gray")
+             else
+                 table$col = "gray"
+
+             for (i in 1:dim(table)[1]) {
+
+                 cplot.rect(cx=cx, xleft=table$start[i], xright=table$end[i], ybottom=0, ytop=pr$height,
+                            col=table$col[i], border=NA)
+                 if (table$strand[i] == "+") {
+                     trig.x = c(table$start[i], table$start[i], table$start[i]+trig.width)
+                     trig.y = c(0, height, height/2)
+                 } else {
+                     trig.x = c(table$end[i], table$end[i], table$end[i]-trig.width)
+                     trig.y = c(0, height, height/2)
+                 }
+                 cplot.polygon(cx=cx, x=trig.x, y=trig.y, col=1, border=NA)
+             }
+             if (pr$add.label)
+                 cplot.margin.text(cx=cx, pr=pr, x=table$coord, labels=table$label, is.top=pr$is.top, cex=0.5)
+         })
+}
+
 gene.identity.profile=function(height, table, add.label=F, is.top=T, plot.trig=F, odir.legend=NA)
 {
     breaks = c(0, 20, 70, 98, 100)
@@ -180,9 +213,19 @@ plot.cov.f=function(cx, pr)
     for (i in 1:length(fields))
         cplot.lines(cx=cx, table=rr, yfield=fields[i], col=pr$cols[i], lwd=pr$lwd)
     cplot.box(cx=cx, pr=pr, col=1)
+    if (cx$type == "rect") {
+        par(mgp=c(0,0,0))
+        binsize = ifelse(cx$max.coord > 5000, 1000, 200)
+        mm = floor(cx$max.coord / binsize)
+        at = binsize*(0:mm)
+        labels = at
+        ysize = pr$height / 30
+        cplot.vsegs(cx=cx, x=at, y0=0, y1=-ysize, lwd=0.5)
+        mtext(text=labels, side=1, at=at, las=2, cex=pr$axis.cex)
+    }
 }
 
-cov.profile=function(height=1, title="coverage", cov.table, cycle.table,
+cov.profile=function(height=1, title="x-coverage", cov.table, cycle.table,
                      grid.label=F, grid.nlines, axis.cex=0.4, lwd=1, plot.MDC=T, tick.size=0.2,
                      fields=c("support", "out_cov", "in_cov", "out_paired_weird", "in_paired_weird", "out_singleton", "in_singleton"),
                      cols.list = list(support="black", out_cov="blue", in_cov="darkblue", out_paired_weird="red", in_paired_weird="darkred", out_singleton="green", in_singleton="darkgreen"),

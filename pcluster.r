@@ -1,115 +1,122 @@
 options(stringsAsFactors=F)
+source("align_utils.r")
+.ver = "v2"
 
 cluster.label.f=function(df, i)
 {
-    c(df$cluster[i],
-      paste0(df$sample[i], ":", df$cycle[i]),
-      df$classification[i],
-      paste0(round(df$MDC[i]),"x", collapse=""),
-      paste0(df$length[i], "bp"))
+    c(df$cluster.id[i], df$label[i])
+    ## c(df$cluster.id[i], df$prev.cluster[i],
+    ##   paste0(df$label[i]),
+    ##   df$classification[i],
+    ##   paste0(round(df$MDC[i]),"x", collapse=""),
+    ##   paste0(df$length[i], "bp"))
 }
 
-plot.cluster.internal=function(cluster, dfc, ll, plot.rep, odir, plot.gene.label)
+plot.cluster.internal=function(cluster.id, prev.cluster, dfc, ll, plot.style, odir)
 {
     # internal radius of circles
     base.rad = 6
 
-    gene.label.id = if(plot.gene.label) "labelled" else ""
-
-    odir.cluster = paste0(odir, "/", gene.label.id, "/", cluster)
-    odir.legend = paste0(odir.cluster, "/legends")
-    odir.circle = paste0(odir.cluster, "/circles")
-    odir.rect = paste0(odir.cluster, "/rects")
-    odir.sets = paste0(odir, "/sets/", gene.label.id)
-    system(paste("mkdir -p", odir.cluster, odir.legend, odir.circle, odir.rect, odir.sets))
+    odir.legend = paste0(odir, "/legends")
+    system(paste("mkdir -p", odir.legend))
 
     class.col.list = list(mobile="darkgreen", plasmid="darkred", phage="orange")
     plot.legend(odir=odir.legend, cols=unlist(class.col.list), names=names(class.col.list), title="gene_class")
 
-    ll$df$cluster = cluster
-    profiles.cluster = list(
-        cov.profile(height=3, title="cov", cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4),
-        empty.profile(height=0.5),
-        gene.start.profile(height=0.2, table=ll$gene.df),
-        gene.identity.profile(height=0.5, table=ll$gene.df, plot.trig=F, add.label=F, is.top=F),
-        empty.profile(height=0.1),
-        gene.uniref.count.profile(height=0.4, table=ll$gene.df, odir.legend=odir.legend),
-        empty.profile(height=0.5),
-        gene.class.profile(height=0.5, table=ll$gene.df, cclass="mobile", col.list=class.col.list),
-        empty.profile(height=0.1),
-        gene.class.profile(height=0.5, table=ll$gene.df, cclass="plasmid", col.list=class.col.list),
-        empty.profile(height=0.1),
-        gene.class.profile(height=0.5, table=ll$gene.df, cclass="phage", col.list=class.col.list),
-        empty.profile(height=0.5),
-        align.profile(base.height=0.75, dfc=dfc, table.cycles=ll$df, table.align=ll$dfx, table.snps=ll$dfs),
-        gene.start.profile(height=0.2, table=ll$gene.df, col.strand=F, add.label=plot.gene.label, is.top=T),
+    ll$df$prev.cluster = prev.cluster
+    ll$df$cluster.id = cluster.id
+
+    is.clean = (grepl("clean", plot.style))
+    pgap = 0.1
+
+    profiles.short = list(
+        cov.profile(height=1.2, cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4, grid.label=T),
+        empty.profile(height=pgap),
+        align.profile(base.height=0.15, dfc=dfc, table.cycles=ll$df, table.align=ll$dfx, table.snps=ll$dfs,
+                      odir.legend=odir.legend, plot.titles=!is.clean, plot.segments=F),
+        empty.profile(height=pgap),
+        gene.arrow.profile(height=0.1, table=ll$gene.df, add.label=!is.clean),
         vlines.profile(table=ll$cc, field="cum_sum", lty=2))
 
-    ofn = paste0(odir.sets, "/", cluster, ".pdf")
+    profiles.details = list(
+        cov.profile(height=1.2, cov.table=ll$covs, cycle.table=ll$df, grid.nlines=4, grid.label=T),
+        empty.profile(height=pgap),
+        align.profile(base.height=0.1, dfc=dfc, table.cycles=ll$df, table.align=ll$dfx, table.snps=ll$dfs,
+                      odir.legend=odir.legend, plot.titles=T, plot.segments=T),
+        empty.profile(height=pgap),
+        gene.identity.profile(height=0.25, table=ll$gene.df, plot.trig=F, add.label=F, is.top=F),
+        empty.profile(height=pgap),
+        gene.uniref.count.profile(height=0.25, table=ll$gene.df, odir.legend=odir.legend),
+        empty.profile(height=pgap),
+        gene.class.profile(height=0.25, table=ll$gene.df, cclass="mobile", col.list=class.col.list),
+        empty.profile(height=0.05),
+        gene.class.profile(height=0.25, table=ll$gene.df, cclass="plasmid", col.list=class.col.list),
+        empty.profile(height=0.05),
+        gene.class.profile(height=0.25, table=ll$gene.df, cclass="phage", col.list=class.col.list),
+        empty.profile(height=pgap),
+        gene.arrow.profile(height=0.1, table=ll$gene.df, add.label=!is.clean),
+        vlines.profile(table=ll$cc, field="cum_sum", lty=2))
 
-    if (!plot.rep) {
-#        cplot.multi(profiles=profiles.cluster, df=ll$df, cc=ll$cc, base.rad=base.rad,
-#                    label.f=cluster.label.f,
-#                    plot.height.per.cycle=4, style="r", extra=1.1, ofn=ofn)
-        cplot.singles(profiles=profiles.cluster, df=ll$df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
-                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7, rect.inch=4)
+    odir = paste0(odir, "/", plot.style)
+    cat(sprintf("plotting %s to odir: %s\n", plot.style, odir))
+
+    if (!grepl("rep_", plot.style)) {
+        odir.base = paste0(odir, "/", cluster.id)
     } else {
-        odir.circle = paste0(odir, "/reps/circles")
-        odir.rect = paste0(odir, "/reps/rects")
-        system(paste("mkdir -p", odir.circle, odir.rect))
+        odir.base = paste0(odir)
+    }
+    odir.circle = paste0(odir.base, "/circles")
+    odir.rect = paste0(odir.base, "/rects")
+    system(paste("mkdir -p", odir.circle, odir.rect))
 
+    rect.mai = c(0.2, 0.75, 0.75, 2.8)
+    rect.height.factor = 0.75
+    rect.width = 1.2 * (median(dfc$length)/2000) + rect.mai[2] + rect.mai[4]
+    if (plot.style == "detailed") {
+        cplot.singles(profiles=profiles.details, df=ll$df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
+                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7,
+                      rect.width=rect.width, rect.height.factor=rect.height.factor, rect.mai=rect.mai)
+    } else if (plot.style == "clean" || plot.style == "label") {
+        cplot.singles(profiles=profiles.short, df=ll$df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
+                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7,
+                      rect.width=rect.width, rect.height.factor=rect.height.factor, rect.mai=rect.mai)
+    } else if (plot.style == "rep_label" || plot.style == "rep_clean") {
         if (any(ll$df$sample == "cipro_clean"))
             df = ll$df[ll$df$sample == "cipro_clean",]
         else
             df = ll$df[which.max(ll$df$length),]
-        df$id = cluster
-        cplot.singles(profiles=profiles.cluster, df=df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
-                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7, rect.inch=4)
+        df$id = cluster.id
+        cplot.singles(profiles=profiles.short, df=df, cc=ll$cc, base.rad=base.rad, label.f=cluster.label.f,
+                      odir.circle=odir.circle, odir.rect=odir.rect, circle.inch=7,
+                      rect.width=rect.width, rect.height.factor=rect.height.factor, rect.mai=rect.mai)
+    } else {
+        stop("unknown plot style")
     }
 }
 
-plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep, plot.gene.label)
+plot.cluster=function(dfc, prev.cluster, cluster.id)
 {
     idir.cluster = "/relman01/home/nshalon/work/pipe/sour/cluster"
     idir.nucmer = "/relman01/home/nshalon/work/pipe/sour/nucmer"
 
-    dfx = read.cache(paste0(idir.nucmer, "/", set.id, "/CLUSTER_", cluster, ".coords"), function(fn) { read.delim(fn, header=F) })
-    dfs = read.cache(paste0(idir.nucmer, "/", set.id, "/CLUSTER_", cluster, ".snps"), function(fn) { safe.read.delim(fn, header=F) })
-
-    dfc = dfc[dfc$cluster == cluster,]
+    dfc = dfc[dfc$cluster.id == cluster.id,]
     dfc$key = paste0(dfc$sample, "_", dfc$cycle)
 
-    # are these columns correct?
-    names(dfx) = c("start1", "end1", "start2", "end2", "length1", "length2", "identity", "name1", "name2")
-    dfx$sample1 = sapply(strsplit(dfx$name1, "\\|"), function(x) { x[1] })
-    dfx$cycle1 = sapply(strsplit(dfx$name1, "\\|"), function(x) { x[2] })
-    dfx$sample2 = sapply(strsplit(dfx$name2, "\\|"), function(x) { x[1] })
-    dfx$cycle2 = sapply(strsplit(dfx$name2, "\\|"), function(x) { x[2] })
-    dfx = dfx[,-match(c("name1", "name2", "length1", "length2"), names(dfx))]
-    dfx$key1 = paste0(dfx$sample1, "_", dfx$cycle1)
-    dfx$key2 = paste0(dfx$sample2, "_", dfx$cycle2)
-
-    if (!is.null(dfs)) {
-        dfs = dfs[,c(1,4,2,3,11,12)]
-        names(dfs) = c("base1", "base2", "nt1", "nt2", "name1", "name2")
-        dfs$sample1 = sapply(strsplit(dfs$name1, "\\|"), function(x) { x[1] })
-        dfs$cycle1 = sapply(strsplit(dfs$name1, "\\|"), function(x) { x[2] })
-        dfs$sample2 = sapply(strsplit(dfs$name2, "\\|"), function(x) { x[1] })
-        dfs$cycle2 = sapply(strsplit(dfs$name2, "\\|"), function(x) { x[2] })
-        dfs$key1 = paste0(dfs$sample1, "_", dfs$cycle1)
-        dfs$key2 = paste0(dfs$sample2, "_", dfs$cycle2)
-    } else {
-        dfs = setNames(data.frame(matrix(ncol = 8, nrow = 0)), c("base1", "base2", "nt1", "nt2", "name1", "name2", "key1", "key2"))
-    }
-
+    dfx = read.cache(paste0(idir.nucmer, "/circ_refs/circ_refs.coords"), function(fn) { read.delim(fn, header=F) })
+    dfx = parse.nucmer.coords(dfx)
     dfx = dfx[is.element(dfx$key1, dfc$key) & is.element(dfx$key2, dfc$key),]
+
+    dfs = read.cache(paste0(idir.nucmer, "/circ_refs/circ_refs.snps"), function(fn) { safe.read.delim(fn, header=F) })
+    dfs = parse.nucmer.snps(dfs)
     dfs = dfs[is.element(dfs$key1, dfc$key) & is.element(dfs$key2, dfc$key),]
 
     ll = list(dfx=dfx, dfs=dfs, df=NULL, cc=NULL, gene.df=NULL, gene.class=NULL, covs=NULL)
 
     samples = unique(dfc$sample)
-    cat(sprintf("loading %d samples for cluster %d\n", length(samples), cluster))
+    cat(sprintf("loading %d samples for cluster %s\n", length(samples), as.character(cluster.id)))
     for (sample in samples) {
+        if (sample == "ref") next
+
         idir = paste0("/oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/", sample, "_0.0")
         cat(sprintf("loading sample %s from dir: %s\n", sample, idir))
 
@@ -127,8 +134,6 @@ plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep, plot.gene.label
 
         gene.class = read.cache(paste0(idir, "/dominant_cycles/gene_classification"))
 
-        # For Nitan: Please add to the pipeline a step that creates a version of this table that is
-        # restricted to dominant cycles, to enhance performance
         covs = read.cache(paste0(idir, "/cycle_covs_long_adjusted"))
 
         cc$sample = sample
@@ -136,7 +141,6 @@ plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep, plot.gene.label
         gene.df$cycle = gene.df$contig
         covs$sample = sample
 
-        # !!! overriding value in table. For example, in sample is SENB in /oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/sewage_b_0.0/dominant_cycles_filter/cycle_summary_classification
         df$sample = sample
         df$id = sample
 
@@ -167,87 +171,68 @@ plot.cluster=function(dfc, set.id, set.title, cluster, plot.rep, plot.gene.label
         ll$gene.class = rbind(ll$gene.class, restrict(gene.class))
         ll$covs = rbind(ll$covs, restrict(covs))
     }
-    odir = paste0("figures/clusters/", set.title)
+    ll$df$label = dfc$label[match(paste(ll$df$sample,ll$df$cycle),paste(dfc$sample,dfc$cycle))]
+    odir = paste0("figures/cplots/clusters_", .ver)
 
-    if (!is.null(ll$df))
-        plot.cluster.internal(cluster=cluster, dfc=dfc, ll=ll, odir=odir, plot.rep=plot.rep,
-                              plot.gene.label=plot.gene.label)
+    dll = align.summary(dfc=dfc, dfx=dfx, dfs=dfs)
+    keys = order.cycles(mat=dll$mat)
+    dfc = dfc[match(keys, dfc$key),]
+
+    if (is.null(ll$df))
+        return (NULL)
+
+    styles = c("detailed", "rep_clean", "rep_label", "clean", "label")
+#    styles = c("rep_label")
+    for (style in styles)
+        plot.cluster.internal(cluster.id=cluster.id, prev.cluster=prev.cluster, dfc=dfc, ll=ll, odir=odir, plot.style=style)
 }
 
-append.cycle.data=function(dfc)
+plot.clusters=function()
 {
-    dfc$key = paste0(dfc$sample, "_", dfc$cycle)
-    samples = unique(dfc$sample)
-    rr = NULL
-    for (sample in samples) {
-        idir = paste0("/oak/stanford/groups/relman/users/nshalon/pipe/cyc_find_out4/", sample, "_0.0")
-        df = read.cache(paste0(idir, "/dominant_cycles_filter/cycle_summary_classification"))
-        df$key  = paste0(sample, "_", df$cycle)
-        rr = rbind(rr, df)
-    }
-    ix = match(dfc$key, rr$key)
-    if (any(is.na(ix)))
-        stop("not all cycles found")
-    dfc$length = rr$length[ix]
-    dfc
-}
-
-plot.set=function(set.title="uniq_new_guts_cycles", plot.rep=T, plot.gene.label=T)
-{
-    idir.cluster = "/relman01/home/nshalon/work/pipe/sour/cluster"
-
-    set.id = set.title
-    if (set.title == "repeats")
-        set.id = "ecologies_cycles"
-
-    if (set.title == "shorts")
-        set.id = "uniq_cycles"
-
-    dfc = read.cache(paste0(idir.cluster, "/", set.id))
-    dfc = append.cycle.data(dfc)
-
-    if (set.title != "shorts")
-        dfc = dfc[dfc$length >= 1000,]
-    else
-        dfc = dfc[dfc$length < 1000,]
-
-    if (set.title == "repeats") {
-        keep.samples = paste("gut", c("b", "d", "j"), sep="_")
-        dfc = dfc[ is.element(dfc$sample, keep.samples),]
+    get.label=function(df)
+    {
+        fsamples = label.sample(df$sample)
+        ifelse(fsamples != "ref", paste(fsamples, ":", df$cycle, sep=""), df$cycle)
     }
 
-    if (set.id == "uniq_cycles") {
-        remove.samples = c("FP_B", "cipro_b", "gut_e")
-        dfc = dfc[ !is.element(dfc$sample, remove.samples),]
+    get.ref.label=function(df)
+    {
+        dfr = read.delim("data/refs_anns.txt")
+        ix = match(df$cycle, dfr$accession)
+        dfr$sample_location[dfr$sample_location == ""] = "Location NA"
+        dfr$collection_year[is.na(dfr$collection_year)] = "Year NA"
+        ifelse(!is.na(ix), paste(dfr$host_name[ix], ", ", dfr$sample_location[ix], ", ", dfr$collection_year[ix], " (", dfr$accession[ix], ")", sep=""), "")
     }
 
-    tt = sort(table(dfc$cluster), decreasing=T)
-    tt = tt[tt>1]
-    cat(sprintf("Dataset table: %s\n", paste0(idir.cluster, "/", set.id)))
-    cat(sprintf("number of clusters: %d\n", length(tt)))
-    for (cluster in as.numeric(names(tt)))
-        plot.cluster(dfc=dfc, cluster=cluster, set.id=set.id, set.title=set.title, plot.rep=plot.rep,
-                     plot.gene.label=plot.gene.label)
+    df.clusts = read.delim(paste0("output/clusters_", .ver, "/groups.txt"))
+    dfg = read.delim(paste0("output/clusters_", .ver, "/cycles_grouped.txt"))
+    refs = read.delim(paste0("output/clusters_", .ver, "/associated_refs_details.txt"))
+
+    dfc = data.frame(cluster.id=dfg$id, sample=dfg$sample, cycle=dfg$cycle, length=dfg$length)
+    dfc = rbind(dfc, data.frame(cluster.id=refs$cluster.id, sample="ref", cycle=refs$ACC_NUCCORE, length=refs$Length_NUCCORE))
+
+    dfc$prev.cluster = dfg$prev.cluster[match(dfc$cluster.id, dfg$id)]
+    dfc$base.label = get.label(dfc)
+
+    dfc$ref.label = get.ref.label(dfc)
+    dfc$is.ref = dfc$sample == "ref"
+    dfc$label = ifelse(dfc$is.ref, dfc$ref.label, dfc$base.label)
+
+    cat(sprintf("number of clusters: %d\n", dim(df.clusts)[1]))
+    for (i in rev(1:dim(df.clusts)[1])) {
+        prev.cluster = df.clusts$prev.cluster[i]
+        cluster.id = df.clusts$id[i]
+        plot.cluster(dfc=dfc, cluster.id=cluster.id, prev.cluster=prev.cluster)
+    }
 }
 
-plot.sets=function()
-{
-    plot.rep = F
-    # title.ids = c("aab_long_cycles", "fp_long_cycles", "uniq_cycles", "repeats", "shorts")
-    # title.ids = c("uniq_new_guts_cycles")
-    title.ids = "uniq_final_k21_cycles"
-    for (plot.gene.label in c(T,F))
-        for (set.title in title.ids)
-            plot.set(set.title=set.title, plot.rep=plot.rep, plot.gene.label=plot.gene.label)
-}
-
-rlc=function()
+rl=function()
 {
     source("cplot.r")
     source("pcluster.r")
 }
 
-exc=function()
+ex=function()
 {
-    plot.sets()
+    plot.clusters()
 }

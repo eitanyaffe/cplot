@@ -6,7 +6,6 @@
 segment.alignment=function(dfc, dfa, dfo, cols)
 {
     dfa = dfa[dfa$key1 != dfa$key2,]
-    dfc$key = paste(dfc$sample, dfc$cycle, sep="_")
 
     # add cycle length
     dfa$key1 = paste(dfa$sample1, dfa$cycle1, sep="_")
@@ -79,7 +78,7 @@ segment.alignment=function(dfc, dfa, dfo, cols)
     rr
 }
 
-get.align.offset=function(df, df.cycs)
+get.align.offset=function(df, dfc)
 {
     df = df[df$key1 != df$key2,]
     ss = split(df, paste(df$key1, df$key2))
@@ -104,29 +103,32 @@ get.align.offset=function(df, df.cycs)
                                   coord2=llm$coord2, strand2=llm$strand2,
                                   orig.coord=llf$coord1, orig.strand=llf$strand1))
     }
-    rr$length1 = df.cycs$length[match(rr$key1, paste(df.cycs$sample, df.cycs$cycle, sep="_"))]
+    rr$length1 = dfc$length[match(rr$key1, paste(dfc$sample, dfc$cycle, sep="_"))]
     rr$frac1 = ifelse(rr$strand1 == 1, (rr$coord1-1)/(rr$length1-1),(rr$length1-rr$coord1)/(rr$length1-1))
     rr
 }
 
-align.profile=function(base.height=0.05, title="coverage", dfc, table.cycles, table.align, table.snps, gap=0.15)
+align.profile=function(base.height=0.05, title="alignment", dfc, table.cycles, table.align, table.snps, odir.legend,
+                       gap=0.15, plot.titles=T, plot.segments=T)
 {
     n.members = dim(dfc)[1]-1
     height = base.height * n.members
 
-    df.offset = get.align.offset(df=table.align, df.cycs=table.cycles)
+    df.offset = get.align.offset(df=table.align, dfc=dfc)
 
     # align.cols = colorRampPalette(c("darkblue", colors()[43]))(100)
     # align.cols = colorRampPalette(c(colors()[610], colors()[614]))(100)
     align.cols = colorRampPalette(c(colors()[364], colors()[339]))(100)
-    table.align.segs = segment.alignment(dfc=table.cycles, dfa=table.align, dfo=df.offset, cols=align.cols)
+    table.align.segs = segment.alignment(dfc=dfc, dfa=table.align, dfo=df.offset, cols=align.cols)
 
     nts = c("A", "C", "G", "T")
     cols = c("red", "green", "blue", "orange")
     ix = match(table.snps$nt2, nts)
-    table.snps$col = ifelse(!is.na(ix), cols[ix], "gray")
+    table.snps$col = ifelse(!is.na(ix), cols[ix], "darkgray")
 
-    list(height=height, title=title, n.members=n.members, dfc=dfc,
+    plot.legend(odir=odir.legend, cols=cols, names=nts, title="SNPs")
+
+    list(height=height, title=title, n.members=n.members, dfc=dfc, plot.titles=plot.titles, plot.segments=plot.segments,
          table.align=table.align, table.align.segs=table.align.segs, table.snps=table.snps, df.offset=df.offset,
          plot.f=function(cx, pr) {
              hh = (1-gap)*(pr$height / n.members)
@@ -154,42 +156,28 @@ align.profile=function(base.height=0.05, title="coverage", dfc, table.cycles, ta
              # snps
              table.snps = restrict(pr$table.snps)
 
-             # color alignment
+             if (!pr$plot.segments) table.align.segs$col = "lightgray"
+             # plot aligned segments
              for (i in 1:dim(table.align.segs)[1])
                  cplot.rect(cx=cx, xleft=table.align.segs$start1[i], xright=table.align.segs$end1[i],
                             ybottom=table.align.segs$ybottom[i], ytop=table.align.segs$ytop[i],
                             col=table.align.segs$col[i], border=table.align.segs$col[i], lwd=0.5)
 
              # rectangles around alignments
-             for (i in 1:dim(table.align)[1]) {
-                 ## cplot.rect(cx=cx, xleft=table.align$start1[i], xright=table.align$end1[i],
-                 ##            ybottom=table.align$ybottom[i], ytop=table.align$ytop[i],
-                 ##            col=NA, border=1, lwd=0.5)
-                 cplot.vsegs(cx=cx, x=table.align$start1[i], y0=table.align$ybottom[i], y1=table.align$ytop[i],
-                            col=1, lwd=0.5)
-                 cplot.vsegs(cx=cx, x=table.align$end1[i], y0=table.align$ybottom[i], y1=table.align$ytop[i],
-                            col=1, lwd=0.5)
-             }
-
-             # mark alignment origin
-             ## for (i in 1:dim(df.offset)[1]) {
-             ##     mark.width = if (cx$max.coord > 50000) cx$max.coord/200 else cx$max.coord/100
-             ##     if (df.offset$orig.strand[i] == 1) {
-             ##         mark.x = c(df.offset$orig.coord[i], df.offset$orig.coord[i], df.offset$orig.coord[i]+mark.width)
-             ##         mark.y = c(df.offset$ybottom[i], df.offset$ytop[i], df.offset$ycenter[i])
-             ##     } else {
-             ##         mark.x = c(df.offset$orig.coord[i], df.offset$orig.coord[i], df.offset$orig.coord[i]-mark.width)
-             ##         mark.y = c(df.offset$ybottom[i], df.offset$ytop[i], df.offset$ycenter[i])
-             ##     }
-             ##     cplot.polygon(cx=cx, x=mark.x, y=mark.y, col=1, border=NA)
-             ## }
+             if (pr$plot.segments)
+                 for (i in 1:dim(table.align)[1]) {
+                     cplot.vsegs(cx=cx, x=table.align$start1[i], y0=table.align$ybottom[i], y1=table.align$ytop[i],
+                                 col=1, lwd=0.5)
+                     cplot.vsegs(cx=cx, x=table.align$end1[i], y0=table.align$ybottom[i], y1=table.align$ytop[i],
+                                 col=1, lwd=0.5)
+                 }
 
              if (!is.null(table.snps))
                  for (i in 1:dim(table.snps)[1])
                      cplot.vsegs(cx=cx, x=table.snps$base1[i], y0=table.snps$ybottom[i], y1=table.snps$ytop[i], col=table.snps$col[i], lwd=0.5)
 
-
-             for (i in 1:n.members)
-                 cplot.title(cx=cx, pr=pr, title=dfc$key[i], height=dfc$ycenter[i], cex=0.3)
+             if (pr$plot.titles)
+                 for (i in 1:n.members)
+                     cplot.title(cx=cx, pr=pr, title=dfc$label[i], height=dfc$ycenter[i], font=ifelse(dfc$is.ref[i], 1, 2), cex=0.3)
     })
 }

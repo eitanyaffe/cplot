@@ -1,60 +1,5 @@
 options(stringsAsFactors=F)
-
-align.summary=function(dfc, dfx, dfs)
-{
-    keys = dfc$key
-    N = length(keys)
-    result.table = NULL
-    result.mat = matrix(rep(0, N^2), N, N)
-    rownames(result.mat) = keys
-    colnames(result.mat) = keys
-    for (i1 in 1:N) {
-        for (i2 in 1:N) {
-            key1 = keys[i1]
-            key2 = keys[i2]
-
-            # dfx
-            ix = dfx$key1 == key1 & dfx$key2 == key2
-            if (sum(ix) == 0)
-                stop("no alignment found")
-            dfx.ii = dfx[ix,]
-            dfx.ii$match.length1 = abs(dfx.ii$end1 - dfx.ii$start1) + 1
-            dfx.ii$match.length2 = abs(dfx.ii$end2 - dfx.ii$start2) + 1
-            dfx.ii$weight1 = dfx.ii$match.length1 / dfx.ii$length1
-            dfx.ii$weight2 = dfx.ii$match.length2 / dfx.ii$length2
-            dfx.ii$weight = (dfx.ii$weight1 + dfx.ii$weight2) / 2
-            dfx.ii$weight = dfx.ii$weight / sum(dfx.ii$weight)
-
-            length1 = dfx.ii$length1[1]
-            length2 = dfx.ii$length2[1]
-
-            total.alignment1 = sum(dfx.ii$match.length1)
-            total.alignment2 = sum(dfx.ii$match.length2)
-            total.alignment = round((total.alignment1 + total.alignment2) / 2)
-            total.identity = sum(dfx.ii$identity * dfx.ii$weight)
-
-            total.alignment.percent = 100*(total.alignment1/length1 + total.alignment2/length2)/2
-
-            # dfx
-            ix = dfs$key1 == key1 & dfs$key2 == key2
-            total.snps = sum(ix)
-
-            df = data.frame(key1=key1, key2=key2, length1=length1, length2=length2,
-                            match.length=total.alignment, match.percent=total.alignment.percent,
-                            identity=total.identity, snp.count=total.snps)
-            result.table = rbind(result.table, df)
-
-            result.mat[i1, i2] = total.identity
-        }
-    }
-    list(table=result.table, mat=result.mat)
-}
-
-order.cycles=function(mat)
-{
-    hh = hclust(as.dist(100-mat))
-    colnames(mat)[hh$order]
-}
+source("align_utils.r")
 
 plot.nucmer.cluster=function(dfc, set.id, set.title, cluster)
 {
@@ -191,7 +136,7 @@ plot.nucmer=function(set.title="uniq_final_k21_cycles")
 
 plot.nucmer.all=function()
 {
-    title.ids = "uniq_final_k21_cycles"
+    title.ids = "uniq_final_plusgut_k21_cycles"
     for (set.title in title.ids)
         plot.nucmer(set.title=set.title)
 }

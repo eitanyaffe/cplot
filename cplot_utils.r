@@ -20,6 +20,15 @@ read.cache=function(fn, read.f=read.delim)
 # general util functions
 ##################################################################################################################
 
+label.sample=function(x)
+{
+    df = read.delim("data/sample_table.txt")
+    ix = match(x, df$sample)
+    if (any(is.na(ix) & x != "ref"))
+        stop("some samples not found in labeling table")
+    ifelse(!is.na(ix), df$label[ix], x)
+}
+
 sample.rect.points=function(xleft, xright, ybottom, ytop, npoints)
 {
     xx = seq(xleft, xright, length.out=npoints)
@@ -188,7 +197,7 @@ cplot.hgrid=function(cx, pr, vals, at, add.label, lty=1, col=1, cex=0.5, tick.si
                     }
                 },
                 rect={
-                    if (!cx$multi) mtext(text=vals, side=4, at=at, cex=cex, line=-0.5, adj=0, las=1)
+                    if (!cx$multi) mtext(text=vals, side=4, at=at, cex=cex, adj=0, las=1)
                     segments(x0=cx$max.coord, x1=cx$max.coord*1.01, y0=at, y1=at)
 
                 },
@@ -196,16 +205,16 @@ cplot.hgrid=function(cx, pr, vals, at, add.label, lty=1, col=1, cex=0.5, tick.si
     }
 }
 
-cplot.title=function(cx, pr, title, cex=0.4, height=NULL)
+cplot.title=function(cx, pr, title, cex=0.4, height=NULL, ...)
 {
     hh = if (is.null(height)) pr$height/2 else height
     switch (cx$type,
             circle={
                 pp = rect2circle(cx=cx, x=0, y=hh, base.radius=cx$base.rad+cx$current.height)
-                text(x=pp$x, y=pp$y, pos=2, labels=title, offset=.2, cex=cex, adj=1)
+                text(x=pp$x, y=pp$y, pos=2, labels=title, offset=.2, cex=cex, adj=1, ...)
             },
             rect={
-                mtext(text=title, side=4, at=cx$current.height+hh, cex=cex, line=-0.5, adj=0, las=1)
+                mtext(text=title, side=4, at=cx$current.height+hh, cex=cex*1.5, adj=0, las=1, ...)
 
             },
             stop("unknown type"))
@@ -238,7 +247,7 @@ cplot.margin.text=function(cx, pr, x, is.top, labels, cex=0.25)
             },
             rect={
                 pos = if (is.top) 3 else 1
-                adj = if (is.top) -0.1 else +0.1
+                adj = if (is.top) -0.5 else +0.5
                 text(x=x, y=cx$current.height+pr$height, labels=labels, adj=adj,
                      srt=45, xpd=NA, cex=cex)
             },

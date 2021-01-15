@@ -33,7 +33,7 @@ cplot=function(cx, profiles)
         # cat(sprintf("plotting profile: %s\n", pr$title))
 
         if (cx$type == "rect" && pr$height>0)
-            text(x=0, y=cx$current.height+pr$height/2, labels=pr$title, pos=2, xpd=NA)
+            text(x=0, y=cx$current.height+pr$height/2, labels=pr$title, pos=2, xpd=NA, cex=0.5)
 
         pr$plot.f(cx=cx, pr=pr)
         cx$current.height = cx$current.height + pr$height
@@ -45,7 +45,7 @@ cplot=function(cx, profiles)
 # main
 ##################################################################################################################
 
-cplot.on.circle=function(sample, cycle, ofn, label, base.rad, max.coord, profiles, width, height, extra=1.5)
+cplot.on.circle=function(sample, cycle, ofn, label, base.rad, max.coord, profiles, width, height, extra=1.1)
 {
     total.rad = base.rad + get.height.sum(profiles=profiles)
 
@@ -72,18 +72,20 @@ cplot.on.circle=function(sample, cycle, ofn, label, base.rad, max.coord, profile
     graphics.off()
 }
 
-cplot.on.rect=function(sample, cycle, ofn, label, max.coord, profiles, width, height)
+cplot.on.rect=function(sample, cycle, ofn, label, max.coord, profiles, width, height.factor=1, mai=c(0.2,0.8,0.5,1))
 {
     total.heights = get.height.sum(profiles=profiles)
+
+    height = height.factor * (total.heights + mai[1] + mai[3])
 
     xlim = c(0, max.coord)
     ylim = c(0, total.heights)
 
     pdf(ofn, width=width, height=height)
     plot.new()
-    par(mai=c(0.2,0.8,1.6,0.2))
+    par(mai=mai)
     plot.window(xlim=xlim, ylim=ylim)
-    title(main=paste(label, collapse=", "))
+    title(main=paste(label, collapse=", "), cex.main=0.75)
 
     cx = list(sample=sample, cycle=cycle, max.coord=max.coord, type="rect", border.col="gray",
               heights=get.height.sum(profiles=profiles), npoints=360*2, multi=F)
@@ -107,9 +109,12 @@ basic.label.f=function(df, i)
       paste0("score=", df$score[i]))
 }
 
-cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, label.f=basic.label.f, circle.inch=5, rect.inch=4)
+cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, label.f=basic.label.f,
+                       circle.inch=5, circle.extra=1.1,
+                       rect.width=8, rect.height.factor=1, rect.mai=c(0.2,0.8,0.5,1))
 {
-    cat(sprintf("plotting %d cycles into %s and %s\n", dim(df)[1], odir.circle, odir.rect))
+#    cat(sprintf("plotting circles into %s\n", odir.circle, odir.rect))
+#    cat(sprintf("plotting rects into %s\n", odir.rect))
     for (i in dim(df)[1]:1) {
         sample = df$sample[i]
         id = df$id[i]
@@ -122,9 +127,9 @@ cplot.singles=function(profiles, df, cc, base.rad, odir.circle, odir.rect, label
 
         cplot.on.circle(sample=sample, cycle=cycle, ofn=ofn.circle, label=label, max.coord=len,
                         base.rad=base.rad, profiles=profiles,
-                        width=circle.inch, height=circle.inch)
+                        width=circle.inch, height=circle.inch, extra=circle.extra)
         cplot.on.rect(sample=sample, cycle=cycle, ofn=ofn.rect, label=label, max.coord=len, profiles=profiles,
-                      width=rect.inch*2, height=rect.inch)
+                      width=rect.width, height=rect.height.factor, mai=rect.mai)
     }
 
 }
